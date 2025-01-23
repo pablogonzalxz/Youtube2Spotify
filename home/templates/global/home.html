@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<!--[if IE 8 ]><html class="no-js oldie ie8" lang="en"> <![endif]-->
+<!--[if IE 9 ]><html class="no-js oldie ie9" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+
+   <!--- basic page needs
+   ================================================== -->
+   <meta charset="utf-8">
+	<title>Youtube2Spotify</title>
+	<meta name="description" content="">  
+	<meta name="author" content="">
+
+   <!-- mobile specific metas
+   ================================================== -->
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+ 	<!-- CSS
+   ================================================== -->
+   {% load static %}
+   <link rel="stylesheet" href="{% static 'home/base.css' %}">
+   <link rel="stylesheet" href="{% static 'home/main.css' %}">
+   <link rel="stylesheet" href="{% static 'home/vendor.css' %}">
+   <!-- script
+   ================================================== -->
+	<script src="js/modernizr.js"></script>
+
+   <!-- favicons
+	================================================== -->
+	<link rel="icon" type="image/png" href="{% static 'home/images/logo.png' %}">
+
+</head>
+
+<body id="top">
+
+	<!-- header 
+   ================================================== -->
+   <header>
+
+
+		<div class="logo" style="padding-top: 65px; ">
+			<img src="{% static 'home/images/logo.png' %}" alt="Logo" style="height: 80px;">
+	      </div>
+
+	   	<nav id="main-nav-wrap">
+				<ul class="main-navigation">
+					<li class="current"><a class="smoothscroll" title="">Home</a></li>
+				</ul>
+			</nav>
+   		
+   	</div>   	
+   	
+   </header> <!-- /header -->
+
+	<!-- intro section
+   ================================================== -->
+   <section id="intro">
+
+   	<div class="shadow-overlay"></div>
+
+ <div class="intro-content">
+   		<div class="row">
+
+   			<div class="col-twelve">
+	   			<h5>Bem Vindo ao Youtube2Spotify</h5>
+	   			<h1>Converta sets do YouTube em playlists perfeitas no Spotify!</h1>
+
+	   			<li><a class="button stroke smoothscroll" title="" id="process">Inserir URL</a></li>
+
+	   		</div>  
+   			
+   		</div>   		 		
+
+		   <div id="myModal" class="modal">
+			<div class="modal-content">
+				<span class="close">&times;</span>
+				<input type="text" id="urlInput" placeholder="Digite a URL aqui">
+				<br>
+				<div id="imageContainer" style="text-align: center; margin-top: 20px;"></div>
+				<div id="modalButtonContainer" style="margin-top: 20px; text-align: center;">
+					<button id="saveButton">Enviar</button>
+				</div>
+			</div>
+		</div>
+		<script>
+			var modal = document.getElementById("myModal");
+			var btn = document.getElementById("process");
+			var span = document.getElementsByClassName("close")[0];
+			var saveButton = document.getElementById("saveButton");
+
+			btn.onclick = function() {
+				modal.style.display = "block";
+				resetProcess(); 
+			};
+
+			span.onclick = function() {
+				modal.style.display = "none";
+				resetProcess();
+			};
+
+			window.onclick = function(event) {
+				if (event.target == modal) {
+					modal.style.display = "none";
+					resetProcess(); 
+				}
+			};
+
+			function resetProcess() {
+				var urlInput = document.getElementById("urlInput");
+				urlInput.style.display = "block";
+				urlInput.value = "";
+
+				var saveButton = document.getElementById("saveButton");
+				saveButton.textContent = "Enviar";
+				saveButton.disabled = false;
+
+				var imageContainer = document.getElementById("imageContainer");
+				imageContainer.innerHTML = "";
+
+				saveButton.onclick = function () {
+					var inputText = document.getElementById("urlInput").value;
+
+					if (inputText) {
+						saveButton.disabled = true;
+						saveButton.textContent = "Processando...";
+
+						fetch("{% url 'get_video' %}", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								"X-CSRFToken": "{{ csrf_token }}"
+							},
+							body: JSON.stringify({ url: inputText })
+						})
+						.then(response => response.json())
+						.then(data => {
+							if (data.success) {
+								saveButton.textContent = "Clique aqui para ver sua playlist";
+								saveButton.onclick = function () {
+									window.location.href = data.playlist_url;
+								};
+
+								document.getElementById("urlInput").style.display = "none";
+
+								var playlistLink = document.createElement("a");
+								playlistLink.href = data.playlist_url;
+								playlistLink.target = "_blank";
+
+								var playlistCoverImage = document.createElement("img");
+								playlistCoverImage.src = data.playlist_cover_url;
+								playlistCoverImage.alt = "Capa da playlist";
+								playlistCoverImage.style.cursor = "pointer";
+
+								playlistLink.appendChild(playlistCoverImage);
+
+								var imageContainer = document.getElementById("imageContainer");
+								imageContainer.innerHTML = "";
+								imageContainer.appendChild(playlistLink);
+
+								var buttonContainer = document.getElementById("modalButtonContainer");
+								buttonContainer.appendChild(saveButton);
+							} else {
+								alert("Ocorreu um erro: " + data.error);
+							}
+						})
+						.catch(error => {
+							console.error("Erro:", error);
+							alert("Ocorreu um erro ao tentar salvar a URL.");
+						})
+						.finally(() => {
+							saveButton.disabled = false;
+						});
+					} else {
+						alert("Por favor, insira uma URL antes de salvar.");
+					}
+				};
+			}
+
+		  </script>
+  
+   </section> 
+
+      <div class="footer-bottom">
+
+
+			<div class="col-twelve">
+	      		<div class="copyright">
+		         	<span>Desenvolvido por <a href="https://www.linkedin.com/in/pablo-gonzalez-7a6468264/">Pablo Gonzalez</a></span>	
+					<span><a href="https://github.com/pablogonzalxz/Youtube2Spotify">GitHub</a></span>         	
+		         </div> 
+
+      	</div>   	
+
+      </div>
+
+   </footer>  
+
+   <div id="preloader"> 
+    	<div id="loader"></div>
+   </div> 
+
+
+</body>
+
+</html>
