@@ -4,7 +4,6 @@
 
 ## 📖 Sobre o Projeto  
 O 
-O **
 **Youtube2Spotify** é uma solução desenvolvida para quem adora escutar sets no YouTube, mas prefere a interface limpa e sem anúncios do Spotify. Com este projeto, você pode enviar a URL de um vídeo no YouTube (contendo capítulos ou músicas listadas na descrição), e ele automaticamente cria uma playlist personalizada no Spotify para você.  
 
 ## 🚀 Funcionalidades  
