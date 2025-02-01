@@ -4,3 +4,7 @@ static/
 settings.py
 db.sqlite3
 __pycache__/
+.dockerignore
+.github/workflows/fly-deploy.yml
+Dockerfile
+fly.toml

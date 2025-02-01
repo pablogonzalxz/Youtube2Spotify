@@ -47,7 +47,10 @@ def get_video(request):
                 return JsonResponse({"success": False, "error": "URL não fornecida."}, status=400)
             if not validators.url(url):
                 return JsonResponse({"success": False, "error": "URL fornecida é inválida."}, status=400)
-            result, video_title = get_video_chapters_with_selenium(url)
+            if "&list=" in url:
+                result, video_title = get_music_list(url)
+            else:
+                result, video_title = get_video_chapters_with_selenium(url)
 
             if not result:
                 return JsonResponse({"success": False, "error": "Nenhum capítulo encontrado ou erro no processamento."}, status=500)
@@ -67,10 +70,66 @@ def get_video(request):
 
     return JsonResponse({"success": False, "error": "Método não permitido."}, status=405)
 
+def get_music_list(url):
+    service = Service("site_project/bin/chromedriver.exe")
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")  
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    try:
+        driver.get(url)
+        time.sleep(8) 
+
+        video_title = driver.find_element(By.CSS_SELECTOR, 'a.style-scope.yt-formatted-string').text.strip()
+        music_list = []
+        scrollable_div = driver.find_element(By.CSS_SELECTOR, '#items')
+
+        last_height = 0
+
+        while True:
+
+            music_elements = driver.find_elements(By.CSS_SELECTOR, 'span#video-title.style-scope.ytd-playlist-panel-video-renderer')
+
+            for music in music_elements:
+                text = music.text.strip()
+                if text and text not in [m[0] for m in music_list]:
+                    clean_text = re.sub(r'\s?(\d+\.)|\s?part\.\s.*?|\s?feat\.\s.*?|\(.*?\)|[,-]', ' ', text)
+                    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+                    music_list.append((clean_text, ""))
+
+            driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", scrollable_div)
+            time.sleep(2)
+
+            new_height = driver.execute_script("return arguments[0].scrollHeight;", scrollable_div)
+            if new_height == last_height:
+                break 
+            last_height = new_height
+
+        if music_list:
+            print(f"Total de músicas encontradas: {len(music_list)}")
+            try:
+                print(music_list)
+                playlist_url, playlist_cover_url = create_spotify_playlist_with_tracks(music_list, video_title)
+                print(f"Playlist criada: {playlist_url}")
+            except Exception as e:
+                print(f"Erro ao enviar para o Spotify: {e}")
+                raise e
+            return music_list, video_title
+
+
+    except Exception as e:
+        print(f"Erro ao buscar músicas da playlist: {e}")
+        return [], ""
+
+    finally:
+        driver.quit()
+
 
 
 def get_video_chapters_with_selenium(url):
-    service = Service("site_project/bin/chromedriver.exe")
+    service = Service("site_project/bin/chromedriverwindows.exe")
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")  
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -251,7 +310,7 @@ def create_spotify_playlist_with_tracks(musicas, video_title):
 
     if track_ids:
         sp.playlist_add_items(playlist_id, track_ids)
-        print(f"Músicas adicionadas à playlist: {', '.join([musica for musica, _ in musicas])}")
+        print(f"Músicas adicionadas à playlist: {'/n '.join([musica for musica, _ in musicas])}")
     else:
         print("Nenhuma música foi adicionada à playlist.")
 
